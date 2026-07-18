@@ -160,3 +160,35 @@ Important:
         "llm_calls": state.get("llm_calls", 0) + 1
     }
 
+
+graph = StateGraph(TravelState)
+
+graph.add_node("flight_agent", flight_agent)
+graph.add_node("hotel_agent", hotel_agent)
+graph.add_node("itinerary_agent", itinerary_agent)
+graph.add_node("final_agent", final_agent)
+
+graph.add_edge(START, "flight_agent")
+graph.add_edge("flight_agent", "hotel_agent")
+graph.add_edge("hotel_agent", "itinerary_agent")
+graph.add_edge("itinerary_agent", "final_agent")
+graph.add_edge("final_agent", END)
+
+
+# =========================
+# PostgreSQL Checkpointer
+# =========================
+DATABASE_URL = get_database_url()
+
+_conn = psycopg.connect(
+    DATABASE_URL,
+    autocommit=True,
+    row_factory=dict_row
+)
+
+checkpointer = PostgresSaver(_conn)
+checkpointer.setup()
+
+travel_graph = graph.compile(checkpointer=checkpointer)
+
+
